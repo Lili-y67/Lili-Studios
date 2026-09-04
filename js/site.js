@@ -1,11 +1,18 @@
-const fileMode = window.location.protocol === 'file:';
-const localMode = fileMode || ['localhost', '127.0.0.1'].includes(window.location.hostname);
-const localContentKey = 'les-immortelles-contenu';
-const assetRoot = fileMode ? 'public/images' : '/images';
+const assetRoot = 'public/images';
 
-if (fileMode) {
-  document.querySelectorAll('a[href^="/"]').forEach((link) => link.setAttribute('href', link.getAttribute('href').slice(1)));
-  document.querySelectorAll('[style*="/images/"]').forEach((element) => element.setAttribute('style', element.getAttribute('style').replaceAll('/images/', 'public/images/')));
+function readSharedContent(callback) {
+  const storageFrame = document.createElement('iframe');
+  storageFrame.src = 'storage.html';
+  storageFrame.hidden = true;
+  document.body.append(storageFrame);
+  const receive = (event) => {
+    if (event.source !== storageFrame.contentWindow || event.data?.type !== 'immortelles-content') return;
+    window.removeEventListener('message', receive);
+    callback(event.data.entries || []);
+    storageFrame.remove();
+  };
+  window.addEventListener('message', receive);
+  storageFrame.addEventListener('load', () => storageFrame.contentWindow.postMessage({ type: 'immortelles-read' }, '*'));
 }
 
 const currentPage = window.location.pathname === '/' ? 'index.html' : window.location.pathname.split('/').pop();
@@ -50,14 +57,7 @@ if (managedPage) {
     if (title) title.textContent = entry.title;
     if (body) body.innerHTML = entry.body;
   };
-  if (localMode) {
-    try {
-      const entries = JSON.parse(localStorage.getItem(localContentKey) || '[]');
-      applyManagedContent(entries.find((entry) => entry.slug === managedPage));
-    } catch (_) {}
-  } else {
-    fetch(`/api/content?slug=${encodeURIComponent(managedPage)}`, { cache: 'no-store' }).then((response) => response.ok ? response.json() : null).then(applyManagedContent).catch(() => {});
-  }
+  readSharedContent((entries) => applyManagedContent(entries.find((entry) => entry.slug === managedPage)));
 }
 
 const characters = [

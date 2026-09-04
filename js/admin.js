@@ -1,7 +1,4 @@
-const loginPanel = document.querySelector('#login-panel');
 const editorShell = document.querySelector('#editor-shell');
-const loginForm = document.querySelector('#login-form');
-const loginMessage = document.querySelector('#login-message');
 const entryList = document.querySelector('#entry-list');
 const slugInput = document.querySelector('#entry-slug');
 const titleInput = document.querySelector('#entry-title');
@@ -12,8 +9,16 @@ const previewTitle = document.querySelector('#preview-title');
 const previewBody = document.querySelector('#preview-body');
 const previewLink = document.querySelector('#preview-link');
 const wordCount = document.querySelector('#word-count');
-const localEditorMode = window.location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const localEditorKey = 'les-immortelles-contenu';
+const storageFrame = document.createElement('iframe');
+storageFrame.src = 'storage.html';
+storageFrame.hidden = true;
+document.body.append(storageFrame);
+let storageReady = false;
+storageFrame.addEventListener('load', () => {
+  storageReady = true;
+  if (entries.length) storageFrame.contentWindow.postMessage({ type: 'immortelles-write', entries }, '*');
+});
 const defaultEntries = [
   { slug: 'personnages', title: 'Visages de légende', body: '<p>Dix-huit destins. Des alliances fragiles, des pouvoirs anciens et une même guerre pour empêcher les mondes de disparaître.</p>' },
   { slug: 'films', title: 'Les histoires prennent vie', body: '<p>Entrez dans les coulisses des films en production. Chaque affiche est une porte entrouverte sur un chapitre de la saga.</p>' },
@@ -24,13 +29,6 @@ let entries = [];
 let activeIndex = 0;
 let autoSaveTimer;
 const pageNames = { personnages: 'Personnages', films: 'Films', wallpapers: 'Wallpapers', videos: 'Vidéos' };
-
-async function request(url, options) {
-  const response = await fetch(url, options);
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Une erreur est survenue.');
-  return data;
-}
 
 function readLocalEntries() {
   try {
@@ -43,6 +41,7 @@ function readLocalEntries() {
 
 function writeLocalEntries() {
   localStorage.setItem(localEditorKey, JSON.stringify(entries));
+  if (storageReady) storageFrame.contentWindow.postMessage({ type: 'immortelles-write', entries }, '*');
 }
 
 function renderEntry() {
@@ -69,7 +68,6 @@ function renderPreview() {
 function markAsEdited() {
   editorMessage.textContent = 'Modifications non enregistrées';
   renderPreview();
-  if (!localEditorMode) return;
   clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(() => {
     if (!slugInput.value.trim() || !titleInput.value.trim()) return;
@@ -80,36 +78,13 @@ function markAsEdited() {
 }
 
 async function loadEditor() {
-  if (localEditorMode) {
-    entries = readLocalEntries();
-    document.querySelector('#logout').textContent = '← Retour au site';
-    editorMessage.textContent = 'Mode local : les textes sont sauvegardés sur cet ordinateur.';
-  } else {
-    const data = await request('/api/admin/content');
-    entries = data.entries;
-  }
+  entries = readLocalEntries();
+  document.querySelector('#logout').textContent = '← Retour au site';
+  editorMessage.textContent = 'Mode local : les textes sont sauvegardés sur cet ordinateur.';
   activeIndex = 0;
-  loginPanel.hidden = true;
   editorShell.hidden = false;
   renderEntry();
-  registerWebMcp();
 }
-
-loginForm.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  loginMessage.textContent = '';
-  try {
-    await request('/api/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: document.querySelector('#admin-password').value }),
-    });
-    document.querySelector('#admin-password').value = '';
-    await loadEditor();
-  } catch (error) {
-    loginMessage.textContent = error.message;
-  }
-});
 
 entryList.addEventListener('click', (event) => {
   const button = event.target.closest('button[data-index]');
@@ -148,17 +123,9 @@ document.querySelector('#add-link').addEventListener('click', () => {
 [slugInput, titleInput, richEditor].forEach((field) => field.addEventListener('input', markAsEdited));
 
 async function saveEntry(entry) {
-  if (localEditorMode) {
-    entries[activeIndex] = entry;
-    writeLocalEntries();
-    return entry;
-  }
-  const data = await request('/api/admin/content', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(entry),
-  });
-  return data.entry;
+  entries[activeIndex] = entry;
+  writeLocalEntries();
+  return entry;
 }
 
 document.querySelector('#save-entry').addEventListener('click', async () => {
@@ -169,7 +136,7 @@ document.querySelector('#save-entry').addEventListener('click', async () => {
     if (!slugInput.value.trim() || !titleInput.value.trim()) throw new Error('La page et le titre doivent être renseignés.');
     const saved = await saveEntry({ slug: slugInput.value.trim(), title: titleInput.value.trim(), body: richEditor.innerHTML });
     entries[activeIndex] = saved;
-    editorMessage.textContent = localEditorMode ? 'Sauvegardé sur cet ordinateur. Recharge la page concernée pour voir le texte.' : 'Modifications publiées.';
+    editorMessage.textContent = 'Sauvegardé sur cet ordinateur. Recharge la page concernée pour voir le texte.';
     renderEntry();
   } catch (error) {
     editorMessage.textContent = error.message;
@@ -186,35 +153,7 @@ document.addEventListener('keydown', (event) => {
 });
 
 document.querySelector('#logout').addEventListener('click', async () => {
-  if (localEditorMode) {
-    window.location.href = 'index.html';
-    return;
-  }
-  await request('/api/admin/session', { method: 'DELETE' });
-  editorShell.hidden = true;
-  loginPanel.hidden = false;
+  window.location.href = 'index.html';
 });
 
-async function registerWebMcp() {
-  if (localEditorMode || !document.modelContext?.registerTool || window.__immortellesToolRegistered) return;
-  window.__immortellesToolRegistered = true;
-  try {
-    await document.modelContext.registerTool({
-      name: 'save_content_block', title: 'Enregistrer un bloc',
-      description: 'Crée ou met à jour un bloc éditorial visible sur le site Les Immortelles.',
-      inputSchema: { type: 'object', properties: { slug: { type: 'string' }, title: { type: 'string' }, body: { type: 'string' } }, required: ['slug', 'title', 'body'], additionalProperties: false },
-      annotations: { readOnlyHint: false, untrustedContentHint: false },
-      async execute(input) {
-        if (!input?.slug || !input?.title || !input?.body) throw new Error('slug, title et body sont obligatoires.');
-        const saved = await saveEntry(input);
-        return { slug: saved.slug, status: 'saved' };
-      },
-    });
-  } catch (_) {}
-}
-
-if (localEditorMode) {
-  loadEditor();
-} else {
-  request('/api/admin/session').then((data) => { if (data.authenticated) loadEditor(); }).catch(() => {});
-}
+loadEditor();

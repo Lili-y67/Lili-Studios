@@ -1,12 +1,12 @@
-LES IMMORTELLES — UTILISATION LOCALE
+LES IMMORTELLES — SITE LOCAL
 
-1. Double-cliquez sur OUVRIR-LE-SITE.bat.
-2. Le site s'ouvre automatiquement dans votre navigateur.
-3. Gardez la fenêtre « Les Immortelles - Serveur local » ouverte pendant la visite.
-4. L'éditeur fonctionne sans mot de passe en mode local et sauvegarde les textes sur cet ordinateur.
-5. Fermez la fenêtre du serveur lorsque vous avez terminé.
+1. Double-cliquez sur OUVRIR-LE-SITE.bat ou directement sur index.html.
+2. Le site s'ouvre dans votre navigateur, sans serveur et sans localhost.
+3. L'éditeur ne demande aucun mot de passe et sauvegarde les textes dans votre navigateur.
 
-Il n'est pas nécessaire d'héberger le site sur Internet.
+Le dossier complet peut être déplacé, mais gardez toujours les fichiers HTML (y compris storage.html), styles.css, js et public ensemble.
+
+Pour une mise en ligne facultative sur Railway, consultez DEPLOIEMENT.txt. Le site local continue de fonctionner exactement de la même manière.
 
 RÉSUMÉS DES FILMS
 

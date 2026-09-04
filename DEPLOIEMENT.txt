@@ -1,0 +1,18 @@
+DEPLOIEMENT RAILWAY — VERSION MINI NODE
+
+Le projet ne demande aucune dépendance et aucune commande de build.
+
+1. Envoyez le dossier sur GitHub.
+2. Dans Railway, choisissez « Deploy from GitHub repo ».
+3. Railway détecte automatiquement la commande npm start.
+
+Si Railway demande une commande :
+
+Build Command : laisser vide
+Start Command : npm start
+Healthcheck Path : /health
+
+Aucune variable d'environnement n'est nécessaire.
+Railway fournit automatiquement PORT et server.js l'écoute sur 0.0.0.0.
+
+Le site reste aussi ouvrable directement avec OUVRIR-LE-SITE.bat ou index.html.

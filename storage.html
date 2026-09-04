@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Stockage local</title></head><body><script>
+const key = 'les-immortelles-contenu';
+addEventListener('message', (event) => {
+  if (event.data?.type === 'immortelles-read') {
+    let entries = [];
+    try { entries = JSON.parse(localStorage.getItem(key) || '[]'); } catch (_) {}
+    event.source.postMessage({ type: 'immortelles-content', entries }, '*');
+  }
+  if (event.data?.type === 'immortelles-write' && Array.isArray(event.data.entries)) {
+    localStorage.setItem(key, JSON.stringify(event.data.entries));
+  }
+});
+</script></body></html>
