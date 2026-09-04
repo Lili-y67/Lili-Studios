@@ -1,0 +1,15 @@
+LES IMMORTELLES — UTILISATION LOCALE
+
+1. Double-cliquez sur OUVRIR-LE-SITE.bat.
+2. Le site s'ouvre automatiquement dans votre navigateur.
+3. Gardez la fenêtre « Les Immortelles - Serveur local » ouverte pendant la visite.
+4. L'éditeur fonctionne sans mot de passe en mode local et sauvegarde les textes sur cet ordinateur.
+5. Fermez la fenêtre du serveur lorsque vous avez terminé.
+
+Il n'est pas nécessaire d'héberger le site sur Internet.
+
+RÉSUMÉS DES FILMS
+
+Les images de résumé se rangent dans public\images\resume.
+Utilisez les noms resume-01.png, resume-02.png, jusqu'à resume-09.png.
+Une affiche devient automatiquement cliquable lorsque son image de résumé existe.
